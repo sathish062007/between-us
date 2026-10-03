@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>The Between Us — Synchronized Cinema for Two</title>
+  <meta name="description" content="Synchronized private video playback for couples and friends. Developed by Hasatz Solutions Private Limited." />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23e50914'><path d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/></svg>" />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#07070a" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              red: '#e50914',
+              surface: '#0f0f14',
+              elevated: '#16161f'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- QRCode.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <!-- Socket.IO Client CDN -->
+  <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" crossorigin href="/assets/index-CctE0U2k.css">
+</head>
+<body class="flex flex-col min-h-screen bg-[#07070a] text-gray-100">
+
+  <!-- ==================== HEADER BAR ==================== -->
+  <header class="sticky top-0 z-40 bg-[#0c0c12]/95 border-b border-white/10 backdrop-blur-md px-3 sm:px-4 py-2.5 sm:py-3">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4">
+      
+      <!-- Brand Logo -->
+      <div class="flex items-center gap-2.5 sm:gap-3 cursor-pointer" onclick="location.reload()">
+        <div class="w-7 h-7 sm:w-8 h-8 rounded-lg bg-[#e50914] flex items-center justify-center text-white shadow flex-shrink-0">
+          <i data-lucide="play" class="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current"></i>
+        </div>
+        <div class="leading-tight">
+          <div class="flex items-center gap-1.5 sm:gap-2">
+            <span class="font-bold text-sm sm:text-base tracking-tight text-white">The Between <span class="text-[#e50914]">Us</span></span>
+            <span class="text-[9px] sm:text-[10px] font-semibold text-gray-400 bg-white/5 border border-white/10 px-1 py-0.2 rounded">2P</span>
+          </div>
+          <p class="text-[9px] sm:text-[10px] text-gray-400 font-medium truncate max-w-[140px] sm:max-w-none">Hasatz Solutions</p>
+        </div>
+      </div>
+
+      <!-- Network / Sync Latency Pill -->
+      <div id="networkStatusBadge" class="hidden md:flex items-center gap-2 text-xs font-medium text-gray-300 bg-white/5 border border-white/10 px-3 py-1.5 rounded-full">
+        <span id="networkStatusDot" class="w-2 h-2 rounded-full bg-emerald-500"></span>
+        <span id="networkStatusLabel">Online (14ms sync)</span>
+      </div>
+
+      <!-- Right Header Actions -->
+      <div class="flex items-center gap-1.5 sm:gap-2.5">
+        
+        <!-- Room Code Tag (Active inside room) -->
+        <div id="headerRoomPill" class="hidden flex items-center gap-1.5 sm:gap-2 bg-white/5 border border-white/10 px-2.5 sm:px-3 py-1 rounded-full text-xs">
+          <span class="text-gray-400 font-medium hidden xs:inline">Room:</span>
+          <span id="roomCodeDisplay" class="font-mono font-bold text-white tracking-wider">AB7K9</span>
+          <button onclick="openInviteModal()" class="text-gray-400 hover:text-white transition p-0.5" title="Share via WhatsApp or QR Code">
+            <i data-lucide="share-2" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+
+        <!-- User Profile Pill -->
+        <button onclick="openProfileModal()" class="flex items-center gap-1.5 sm:gap-2 bg-white/5 hover:bg-white/10 border border-white/10 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full transition">
+          <div class="w-5 h-5 rounded-full bg-red-600/30 flex items-center justify-center text-xs overflow-hidden user-avatar-display">
+            🍿
+          </div>
+          <span class="text-xs font-semibold text-gray-200 user-name-display truncate max-w-[70px] sm:max-w-[120px]">Guest</span>
+        </button>
+
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ==================== MAIN APPLICATION CONTAINER ==================== -->
+  <main class="flex-1 flex flex-col max-w-7xl w-full mx-auto p-2 sm:p-4 md:p-5">
+
+    <!-- ==================== VIEW 0: EMAIL / GOOGLE LOGIN (FIRST STEP) ==================== -->
+    <div id="authView" class="flex-1 flex flex-col justify-center items-center py-6 sm:py-10 px-2 sm:px-3">
+      
+      <!-- Brand Hero -->
+      <div class="text-center max-w-md mx-auto mb-6">
+        <div class="inline-flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-1 rounded-full text-xs font-medium text-gray-300 mb-3">
+          <span class="w-1.5 h-1.5 rounded-full bg-[#e50914]"></span>
+          Hasatz Solutions Private Limited
+        </div>
+        <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight leading-tight mb-2">
+          Sign In to The Between Us
+        </h1>
+        <p class="text-xs sm:text-sm text-gray-400">
+          Enter your email and nickname to create or join private synchronized watch rooms with your partner.
+        </p>
+      </div>
+
+      <!-- Login Form Card -->
+      <div class="w-full max-w-md ui-card p-5 sm:p-6 shadow-2xl border border-white/10">
+        
+        <form id="authForm" onsubmit="handleAuthSubmit(event)" class="space-y-4">
+          
+          <!-- Email Input -->
+          <div>
+            <label class="block text-xs font-bold text-gray-300 mb-1.5">
+              Email Address / Google Account <span class="text-[#e50914]">*</span>
+            </label>
+            <div class="relative">
+              <input 
+                type="email" 
+                id="authEmailInput" 
+                required
+                placeholder="e.g. yourname@gmail.com" 
+                class="w-full ui-input pl-9 pr-3 py-2.5 text-xs text-white" 
+              />
+              <i data-lucide="mail" class="w-4 h-4 text-gray-400 absolute left-3 top-3"></i>
+            </div>
+          </div>
+
+          <!-- Display Name Input -->
+          <div>
+            <label class="block text-xs font-bold text-gray-300 mb-1.5">
+              Your Name / Nickname <span class="text-[#e50914]">*</span>
+            </label>
+            <div class="relative">
+              <input 
+                type="text" 
+                id="authNameInput" 
+                required
+                placeholder="e.g. Sathish / Honey" 
+                class="w-full ui-input pl-9 pr-3 py-2.5 text-xs text-white" 
+              />
+              <i data-lucide="user" class="w-4 h-4 text-gray-400 absolute left-3 top-3"></i>
+            </div>
+          </div>
+
+          <!-- Avatar Picker / Gallery Photo -->
+          <div>
+            <label class="block text-xs font-bold text-gray-300 mb-1.5">Choose Avatar or Upload Photo</label>
+            <div id="authAvatarPickerGrid" class="grid grid-cols-7 gap-1.5 bg-black/40 p-2 rounded-xl border border-white/10 mb-2">
+              <!-- Populated by JS -->
+            </div>
+            <label class="flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-dashed border-white/20 py-2 rounded-xl text-xs text-gray-300 cursor-pointer transition">
+              <i data-lucide="image" class="w-4 h-4 text-gray-400"></i>
+              <span>Upload Photo from Gallery</span>
+              <input type="file" id="authPhotoInput" accept="image/*" class="hidden" onchange="handleAuthPhotoUpload(event)" />
+            </label>
+          </div>
+
+          <!-- Submit Button -->
+          <button type="submit" class="w-full py-3 px-4 rounded-xl text-white font-bold text-sm btn-primary flex items-center justify-center gap-2">
+            <span>Continue with Email & Account</span>
+            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+          </button>
+
+        </form>
+
+        <div class="flex items-center gap-3 my-4">
+          <div class="flex-1 h-px bg-white/10"></div>
+          <span class="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">Or Quick Access</span>
+          <div class="flex-1 h-px bg-white/10"></div>
+        </div>
+
+        <!-- Quick Google Fill Button -->
+        <button onclick="handleQuickGoogleLogin()" class="w-full py-2.5 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-gray-200 flex items-center justify-center gap-2 mb-2 transition">
+          <svg class="w-4 h-4" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+          </svg>
+          <span>One-Tap Sign in with Google</span>
+        </button>
+
+        <!-- Quick Guest Button -->
+        <button onclick="handleGuestLogin()" class="w-full py-2 px-3 text-center text-[11px] font-medium text-gray-400 hover:text-white transition">
+          Continue as Guest Viewer →
+        </button>
+
+      </div>
+
+    </div>
+
+    <!-- ==================== VIEW 1: CLEAN ROOM LOBBY ==================== -->
+    <div id="lobbyView" class="hidden flex-1 flex flex-col justify-center items-center py-6 sm:py-10 px-2 sm:px-3">
+      
+      <!-- Hero Header -->
+      <div class="text-center max-w-xl mx-auto mb-6 sm:mb-8">
+        <div class="inline-flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-1 rounded-full text-xs font-medium text-gray-300 mb-3">
+          <span class="w-1.5 h-1.5 rounded-full bg-[#e50914]"></span>
+          Hasatz Solutions Private Limited
+        </div>
+        <h1 class="text-2xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight mb-2">
+          Watch Together in Real-Time Sync
+        </h1>
+        <p class="text-xs sm:text-sm text-gray-400">
+          A private 2-person synchronized cinema for couples & friends. Mobile-friendly, zero lag, and instant WhatsApp invitations.
+        </p>
+      </div>
+
+      <!-- Action Box -->
+      <div class="w-full max-w-md ui-card p-4 sm:p-6 shadow-xl border border-white/10 mb-5">
+        
+        <!-- Create Room -->
+        <button onclick="createRoom()" class="w-full py-3 px-4 rounded-xl text-white font-bold text-sm btn-primary flex items-center justify-center gap-2 mb-3 sm:mb-4">
+          <i data-lucide="sparkles" class="w-4 h-4"></i>
+          <span>Create Private Watch Room</span>
+        </button>
+
+        <div class="flex items-center gap-3 my-3 sm:my-4">
+          <div class="flex-1 h-px bg-white/10"></div>
+          <span class="text-[10px] sm:text-[11px] text-gray-500 uppercase tracking-wider font-semibold">Or join room</span>
+          <div class="flex-1 h-px bg-white/10"></div>
+        </div>
+
+        <!-- Join Room -->
+        <div class="flex gap-2 mb-3 sm:mb-4">
+          <input 
+            type="text" 
+            id="joinRoomInput" 
+            placeholder="5-DIGIT CODE" 
+            maxlength="8"
+            class="flex-1 uppercase font-mono tracking-widest text-center ui-input px-3 py-2.5 text-sm font-bold text-white placeholder-gray-500" 
+          />
+          <button onclick="joinRoom()" class="btn-secondary px-3.5 sm:px-4 py-2.5 text-xs font-bold flex items-center gap-1.5">
+            <span>Join</span>
+            <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+
+        <!-- Offline Mode -->
+        <button onclick="startOfflineMode()" class="w-full py-2.5 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-medium text-gray-300 flex items-center justify-center gap-2 transition">
+          <i data-lucide="hard-drive" class="w-4 h-4 text-gray-400"></i>
+          <span>Play Local Video Offline (No Internet)</span>
+        </button>
+
+      </div>
+
+      <!-- User Account Chip -->
+      <div class="flex items-center gap-2.5 bg-white/5 hover:bg-white/10 border border-white/10 px-3.5 py-1.5 sm:py-2 rounded-full cursor-pointer transition" onclick="openProfileModal()">
+        <div class="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-red-600/30 flex items-center justify-center text-xs user-avatar-display overflow-hidden">
+          🍿
+        </div>
+        <div class="text-xs text-gray-400">
+          Profile: <span class="font-bold text-white user-name-display">Guest</span> • <span class="text-[#e50914] font-medium">Edit</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==================== VIEW 2: ACTIVE CINEMA THEATER ==================== -->
+    <div id="roomView" class="hidden flex-1 flex flex-col gap-3 sm:gap-4">
+      
+      <!-- Top Presence Strip (Real 2-Person Couple Cards) -->
+      <div class="flex flex-wrap items-center justify-between gap-2.5 sm:gap-3 bg-[#0f0f14] border border-white/10 p-2.5 sm:p-3 rounded-xl">
+        
+        <!-- Presence Cards -->
+        <div id="participantsList" class="flex flex-wrap items-center gap-2">
+          <!-- Populated by JS -->
+        </div>
+
+        <!-- Room Actions -->
+        <div class="flex items-center gap-1.5 sm:gap-2">
+          <button onclick="openMediaModal()" class="btn-secondary px-2.5 sm:px-3 py-1.5 text-xs flex items-center gap-1">
+            <i data-lucide="film" class="w-3.5 h-3.5 text-gray-400"></i>
+            <span class="hidden xs:inline">Change</span> Video
+          </button>
+
+          <button onclick="openInviteModal()" class="btn-whatsapp-real px-2.5 sm:px-3 py-1.5 text-xs flex items-center gap-1">
+            <i data-lucide="share-2" class="w-3.5 h-3.5"></i>
+            <span>Invite</span>
+          </button>
+
+          <button onclick="leaveRoom()" class="p-2 hover:bg-red-500/20 text-gray-400 hover:text-red-400 rounded-lg transition" title="Leave Session">
+            <i data-lucide="log-out" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Main Video Arena -->
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-3 sm:gap-4 flex-1">
+        
+        <!-- Video Player & Controls (3 Columns) -->
+        <div class="lg:col-span-3 flex flex-col gap-2.5 sm:gap-3">
+          
+          <div id="videoStage" class="video-player-wrapper aspect-video relative flex items-center justify-center select-none cursor-pointer">
+            
+            <!-- 1. HTML5 Video Player -->
+            <video 
+              id="videoPlayer" 
+              class="video-element" 
+              playsinline
+              webkit-playsinline
+              preload="metadata"
+              src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4"
+            ></video>
+
+            <!-- 2. YouTube Container -->
+            <div id="ytPlayerContainer" class="hidden absolute inset-0 w-full h-full bg-black pointer-events-none">
+              <div id="ytPlayerFrame" class="w-full h-full"></div>
+            </div>
+
+            <!-- 3. OTT Companion Hub -->
+            <div id="companionBanner" class="hidden absolute inset-0 w-full h-full bg-zinc-950 flex flex-col items-center justify-center p-4 sm:p-6 text-center z-20">
+              <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white mb-2 sm:mb-3 shadow">
+                <i data-lucide="tv" class="w-6 h-6 sm:w-7 sm:h-7"></i>
+              </div>
+              <h2 id="companionServiceName" class="text-lg sm:text-xl font-bold text-white mb-1">Streaming Sync Hub</h2>
+              <p class="text-xs text-gray-400 max-w-sm mb-3 sm:mb-4">
+                Use the synchronized 3-2-1 countdown cue to press play together on your OTT platform.
+              </p>
+              <button onclick="openCountdownModal('Streaming Platform')" class="btn-primary px-4 sm:px-5 py-2 text-xs flex items-center gap-1.5">
+                <i data-lucide="timer" class="w-4 h-4"></i>
+                <span>Start 3-2-1 Sync Countdown</span>
+              </button>
+            </div>
+
+            <!-- Mobile Touch Gesture Zones (Double-Tap Left: -10s, Double-Tap Right: +10s, Center: Play/Pause) -->
+            <div id="gestureZoneLeft" class="gesture-zone gesture-zone-left" title="Double tap to rewind 10s"></div>
+            <div id="gestureZoneCenter" class="gesture-zone gesture-zone-center" title="Tap to toggle controls"></div>
+            <div id="gestureZoneRight" class="gesture-zone gesture-zone-right" title="Double tap to forward 10s"></div>
+
+            <!-- Real Center Play Button (Authentic Cinema Styling) -->
+            <button id="centerPlayBtn" class="real-center-btn is-visible absolute inset-0 m-auto z-20" title="Play / Pause">
+              <i data-lucide="play" id="centerPlayIcon" class="w-6 h-6 sm:w-7 sm:h-7 ml-0.5 fill-current"></i>
+            </button>
+
+            <!-- 10s Jump Indicator -->
+            <div id="seekRippleIndicator" class="absolute pointer-events-none opacity-0 scale-75 transition-all duration-200 bg-black/85 border border-white/20 text-white font-mono font-bold text-xs sm:text-sm px-3.5 py-1.5 rounded-full z-30 shadow-lg">
+              +10s
+            </div>
+
+            <!-- Buffering Spinner -->
+            <div id="bufferingSpinner" class="hidden absolute inset-0 m-auto w-10 h-10 border-2 border-white/20 border-t-[#e50914] rounded-full animate-spin z-30"></div>
+
+          </div>
+
+          <!-- Video Scrubber & Controls Bar (Real Player Layout) -->
+          <div class="ui-card p-3 rounded-xl flex flex-col gap-2">
+            
+            <!-- Progress Slider & Current Time -->
+            <div class="flex items-center gap-3">
+              <span id="timeDisplay" class="text-xs font-mono text-gray-300 w-24 flex-shrink-0">00:00 / 00:00</span>
+              <input type="range" id="seekSlider" class="real-seek-bar flex-1" min="0" max="100" value="0" step="0.1" />
+            </div>
+
+            <!-- Controls Row -->
+            <div class="flex items-center justify-between gap-2 pt-0.5">
+              
+              <!-- Left Control Group -->
+              <div class="flex items-center gap-1.5">
+                <!-- Play/Pause -->
+                <button id="playPauseBtn" class="p-2 bg-[#e50914] hover:bg-[#f40612] text-white rounded-lg transition" title="Play / Pause">
+                  <i data-lucide="play" class="w-4 h-4 fill-current"></i>
+                </button>
+
+                <!-- 10s Rewind -->
+                <button id="skipBackwardBtn" class="p-2 hover:bg-white/10 text-gray-300 hover:text-white rounded-lg transition" title="Rewind 10 seconds">
+                  <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                </button>
+
+                <!-- 10s Forward -->
+                <button id="skipForwardBtn" class="p-2 hover:bg-white/10 text-gray-300 hover:text-white rounded-lg transition" title="Forward 10 seconds">
+                  <i data-lucide="rotate-cw" class="w-4 h-4"></i>
+                </button>
+
+                <!-- Volume -->
+                <div class="hidden sm:flex items-center gap-1.5 ml-2">
+                  <button id="muteBtn" class="p-1.5 hover:bg-white/10 text-gray-300 rounded-lg transition">
+                    <i data-lucide="volume-2" class="w-4 h-4"></i>
+                  </button>
+                  <input type="range" id="volumeSlider" min="0" max="1" step="0.05" value="1" class="w-16 h-1 accent-[#e50914] rounded cursor-pointer" />
+                </div>
+              </div>
+
+              <!-- Center Title -->
+              <div class="hidden md:flex items-center gap-2 max-w-xs truncate text-xs text-gray-300 font-medium">
+                <i data-lucide="disc" class="w-3.5 h-3.5 text-red-500 flex-shrink-0"></i>
+                <span id="currentVideoTitle" class="truncate">Sintel - Open Cinema</span>
+              </div>
+
+              <!-- Right Control Group -->
+              <div class="flex items-center gap-1.5">
+                <!-- Playback Speed -->
+                <select id="speedSelect" class="bg-white/5 border border-white/10 text-xs font-semibold rounded-lg px-2 py-1 text-gray-300 outline-none">
+                  <option value="0.5">0.5x</option>
+                  <option value="0.75">0.75x</option>
+                  <option value="1" selected>1.0x</option>
+                  <option value="1.25">1.25x</option>
+                  <option value="1.5">1.5x</option>
+                  <option value="2">2.0x</option>
+                </select>
+
+                <!-- Fullscreen -->
+                <button id="fullscreenBtn" class="p-2 hover:bg-white/10 text-gray-300 hover:text-white rounded-lg transition" title="Fullscreen">
+                  <i data-lucide="maximize" class="w-4 h-4"></i>
+                </button>
+              </div>
+
+            </div>
+
+          </div>
+
+          <!-- Quick Reaction Bar (Clean Real-World Design) -->
+          <div class="flex items-center justify-between gap-1 bg-[#0f0f14] border border-white/10 p-2 rounded-xl overflow-x-auto no-scrollbar">
+            <span class="text-xs font-semibold text-gray-400 px-2 flex-shrink-0">Quick Reaction:</span>
+            <div class="flex items-center gap-1.5">
+              <button class="reaction-btn reaction-pill-btn" data-emoji="❤️">❤️ Love</button>
+              <button class="reaction-btn reaction-pill-btn" data-emoji="🍿">🍿 Popcorn</button>
+              <button class="reaction-btn reaction-pill-btn" data-emoji="🔥">🔥 Fire</button>
+              <button class="reaction-btn reaction-pill-btn" data-emoji="😂">😂 Laugh</button>
+              <button class="reaction-btn reaction-pill-btn" data-emoji="👏">👏 Clap</button>
+              <button class="reaction-btn reaction-pill-btn" data-emoji="🎬">🎬 Cinema</button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Live Chat & Synchronized Notes (1 Column) -->
+        <div class="lg:col-span-1 ui-card rounded-xl flex flex-col h-[480px] lg:h-auto overflow-hidden">
+          
+          <!-- Chat Header -->
+          <div class="p-3 border-b border-white/10 flex items-center justify-between bg-white/5">
+            <div class="flex items-center gap-2">
+              <i data-lucide="message-circle" class="w-4 h-4 text-red-500"></i>
+              <span class="text-xs font-bold text-white">Live Chat & Notes</span>
+            </div>
+            <span class="text-[10px] text-emerald-400 font-mono">Sync Active</span>
+          </div>
+
+          <!-- Message List -->
+          <div id="chatMessagesList" class="flex-1 p-3 overflow-y-auto space-y-2">
+            <!-- Messages populated by JS -->
+          </div>
+
+          <!-- Chat Input -->
+          <div class="p-2.5 border-t border-white/10 bg-white/5 flex gap-2">
+            <input 
+              type="text" 
+              id="chatInput" 
+              placeholder="Send message with timestamp..." 
+              class="flex-1 ui-input px-3 py-2 text-xs text-white placeholder-gray-500" 
+            />
+            <button id="chatSendBtn" class="btn-primary px-3 py-2 text-xs flex items-center justify-center">
+              <i data-lucide="send" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ==================== FOOTER ==================== -->
+  <footer class="bg-[#0c0c12] border-t border-white/10 py-3 px-4 text-xs text-gray-500 mt-auto">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <span class="font-bold text-gray-300">The Between Us</span>
+        <span class="text-gray-600">•</span>
+        <span>A product of <strong class="text-gray-400">Hasatz Solutions Private Limited</strong></span>
+      </div>
+      <div class="text-[11px] text-gray-500">
+        100% Private 2-Person Synchronized Playback • Zero Server Media Storage
+      </div>
+    </div>
+  </footer>
+
+  <!-- ==================== TOAST CUE ==================== -->
+  <div id="appToast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-200 bg-[#16161f] border border-white/20 text-white font-medium text-xs px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2 pointer-events-none">
+    Notification
+  </div>
+
+  <!-- ==================== MODAL 1: WHATSAPP INVITE & REAL QR CODE ==================== -->
+  <div id="inviteModal" class="hidden fixed inset-0 z-50 real-modal-backdrop flex items-center justify-center p-3 sm:p-4">
+    <div class="ui-card-elevated real-modal-card w-full max-w-md p-5 sm:p-6 shadow-2xl relative">
+      
+      <button onclick="closeInviteModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white p-1">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <div class="text-center mb-4">
+        <h3 class="text-base font-bold text-white">Invite Partner to Room</h3>
+        <p class="text-xs text-gray-400">The Between Us • Hasatz Solutions Private Limited</p>
+      </div>
+
+      <!-- Scannable High-Definition QR Code -->
+      <div class="flex flex-col items-center justify-center bg-white p-3.5 sm:p-4 rounded-xl shadow mb-4 mx-auto w-fit">
+        <div id="qrCodeContainer"></div>
+        <span class="text-xs font-bold text-gray-900 mt-2 font-mono">ROOM: <span id="modalRoomCode">AB7K9</span></span>
+      </div>
+
+      <!-- WhatsApp Action -->
+      <button onclick="shareToWhatsApp()" class="w-full py-2.5 px-4 rounded-xl font-bold text-xs btn-whatsapp-real flex items-center justify-center gap-2 mb-2.5">
+        <i data-lucide="send" class="w-4 h-4"></i>
+        <span>Share Room Link to WhatsApp</span>
+      </button>
+
+      <!-- Download QR Image -->
+      <button onclick="downloadQRCodePNG()" class="w-full py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-medium text-gray-300 flex items-center justify-center gap-2 mb-4 transition">
+        <i data-lucide="download" class="w-3.5 h-3.5"></i>
+        <span>Download QR Code Image (PNG)</span>
+      </button>
+
+      <!-- Direct Link Copy -->
+      <div class="flex items-center gap-2">
+        <input type="text" id="joinLinkInput" readonly class="flex-1 ui-input px-3 py-2 text-xs font-mono text-gray-300" />
+        <button onclick="copyJoinLink()" class="btn-secondary px-3 py-2 text-xs font-semibold">
+          Copy Link
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==================== MODAL 2: USER PROFILE & GOOGLE ==================== -->
+  <div id="profileModal" class="hidden fixed inset-0 z-50 real-modal-backdrop flex items-center justify-center p-3 sm:p-4">
+    <div class="ui-card-elevated real-modal-card w-full max-w-md p-5 sm:p-6 shadow-2xl relative">
+      
+      <button onclick="closeProfileModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white p-1">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <div class="text-center mb-4">
+        <h3 class="text-base font-bold text-white">Your Profile</h3>
+        <p class="text-xs text-gray-400">Configure your display name, Google account, and photo</p>
+      </div>
+
+      <!-- Avatar Picker & Photo Upload -->
+      <div class="mb-4">
+        <label class="block text-xs font-bold text-gray-300 mb-1.5">Avatar or Photo</label>
+        <div id="avatarPickerGrid" class="grid grid-cols-7 gap-1.5 bg-black/40 p-2 rounded-xl border border-white/10 mb-2">
+          <!-- Populated by JS -->
+        </div>
+        <label class="flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-dashed border-white/20 py-2 rounded-xl text-xs text-gray-300 cursor-pointer transition">
+          <i data-lucide="image" class="w-4 h-4"></i>
+          <span>Upload Picture from Gallery</span>
+          <input type="file" id="mobilePhotoInput" accept="image/*" class="hidden" onchange="handlePhotoUpload(event)" />
+        </label>
+      </div>
+
+      <!-- Name -->
+      <div class="mb-3">
+        <label class="block text-xs font-bold text-gray-300 mb-1">Display Name</label>
+        <input type="text" id="inputProfileName" class="w-full ui-input px-3 py-2 text-xs" placeholder="e.g. Sathish / Partner" />
+      </div>
+
+      <!-- Google / Gmail -->
+      <div class="mb-5">
+        <label class="block text-xs font-bold text-gray-300 mb-1">Google / Gmail Account</label>
+        <input type="email" id="inputProfileEmail" class="w-full ui-input px-3 py-2 text-xs" placeholder="e.g. user@gmail.com" />
+      </div>
+
+      <div class="flex gap-2">
+        <button onclick="saveProfileChanges()" class="flex-1 py-2.5 rounded-xl font-bold text-xs btn-primary">
+          Save Profile
+        </button>
+        <button onclick="switchAccount()" class="btn-secondary px-3 py-2.5 rounded-xl text-xs font-semibold text-gray-300">
+          Sign Out / Switch
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==================== MODAL 3: MEDIA SOURCE SELECTOR ==================== -->
+  <div id="mediaModal" class="hidden fixed inset-0 z-50 real-modal-backdrop flex items-center justify-center p-3 sm:p-4">
+    <div class="ui-card-elevated real-modal-card w-full max-w-lg p-5 sm:p-6 shadow-2xl relative">
+      
+      <button onclick="closeMediaModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white p-1">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <h3 class="text-base font-bold text-white mb-1">Select Media Source</h3>
+      <p class="text-xs text-gray-400 mb-4">Choose local video file, YouTube link, direct stream, or OTT sync</p>
+
+      <!-- Tabs -->
+      <div class="flex border-b border-white/10 mb-4 text-xs font-semibold">
+        <button id="tabBtn_local" onclick="switchMediaTab('local')" class="media-tab-btn pb-2 px-3 border-b-2 border-[#e50914] text-white">Local File</button>
+        <button id="tabBtn_youtube" onclick="switchMediaTab('youtube')" class="media-tab-btn pb-2 px-3 border-b-2 border-transparent text-gray-400">YouTube</button>
+        <button id="tabBtn_stream" onclick="switchMediaTab('stream')" class="media-tab-btn pb-2 px-3 border-b-2 border-transparent text-gray-400">Direct Link</button>
+        <button id="tabBtn_ott" onclick="switchMediaTab('ott')" class="media-tab-btn pb-2 px-3 border-b-2 border-transparent text-gray-400">OTT Hub</button>
+      </div>
+
+      <!-- Tab 1: Local File -->
+      <div id="mediaTab_local" class="media-tab-content">
+        <label class="border border-dashed border-white/20 hover:border-[#e50914] rounded-xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition bg-white/5">
+          <i data-lucide="hard-drive" class="w-8 h-8 text-gray-400 mb-2"></i>
+          <span class="text-xs font-bold text-white">Choose Video File from Device</span>
+          <span class="text-[11px] text-gray-400 mt-1">MP4, MKV, WebM, AVI (Zero Server Upload)</span>
+          <input type="file" id="localVideoFileInput" accept="video/*" class="hidden" />
+        </label>
+      </div>
+
+      <!-- Tab 2: YouTube -->
+      <div id="mediaTab_youtube" class="media-tab-content hidden space-y-3">
+        <input type="text" id="inputYoutubeUrl" placeholder="Paste YouTube Video URL (e.g. https://youtu.be/...)" class="w-full ui-input px-3 py-2 text-xs" />
+        <button onclick="loadYouTubeUrl(document.getElementById('inputYoutubeUrl').value)" class="w-full py-2 rounded-xl font-bold text-xs btn-primary">
+          Load YouTube Video
+        </button>
+      </div>
+
+      <!-- Tab 3: Direct Stream -->
+      <div id="mediaTab_stream" class="media-tab-content hidden space-y-3">
+        <input type="text" id="inputDirectUrl" placeholder="Direct MP4 / WebM video link" class="w-full ui-input px-3 py-2 text-xs" />
+        <button onclick="loadDirectStreamUrl(document.getElementById('inputDirectUrl').value)" class="w-full py-2 rounded-xl font-bold text-xs btn-primary">
+          Play Direct Stream
+        </button>
+      </div>
+
+      <!-- Tab 4: OTT Companion -->
+      <div id="mediaTab_ott" class="media-tab-content hidden grid grid-cols-2 gap-2">
+        <button onclick="openStreamingCompanion('JioHotstar')" class="p-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl font-semibold text-xs text-white text-left transition">
+          🎬 JioHotstar Sync
+        </button>
+        <button onclick="openStreamingCompanion('ZEE5')" class="p-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl font-semibold text-xs text-white text-left transition">
+          🍿 ZEE5 Sync
+        </button>
+        <button onclick="openStreamingCompanion('Netflix')" class="p-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl font-semibold text-xs text-white text-left transition">
+          📺 Netflix Companion
+        </button>
+        <button onclick="openStreamingCompanion('Prime Video')" class="p-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl font-semibold text-xs text-white text-left transition">
+          🎥 Prime Video Companion
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==================== MODAL 4: 3-2-1 SYNC COUNTDOWN ==================== -->
+  <div id="countdownModal" class="hidden fixed inset-0 z-50 bg-black/95 flex flex-col items-center justify-center p-4">
+    <div class="text-center">
+      <p id="countdownService" class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">OTT Synchronization</p>
+      <div id="countdownNumber" class="text-6xl font-black text-[#e50914] mb-3">3</div>
+      <p class="text-xs text-gray-300">Press play on your OTT app when countdown reaches 0.</p>
+    </div>
+  </div>
+
+  <!-- JavaScript -->
+  <script src="./app.js"></script>
+  <script>
+    if (window.lucide) lucide.createIcons();
+  </script>
+</body>
+</html>
